@@ -1,0 +1,778 @@
+/* ============================================
+   Tetris AI Game - Modern CSS Styles
+   Requirements: 8.1, 8.2, 8.3, 9.1, 9.2, 9.3, 9.4
+   ============================================ */
+
+/* ============================================
+   CSS Variables - Design Tokens
+   ============================================ */
+:root {
+    /* Colors */
+    --color-primary: #6366f1;
+    --color-primary-hover: #4f46e5;
+    --color-primary-light: #818cf8;
+    --color-secondary: #64748b;
+    --color-secondary-hover: #475569;
+    
+    /* Background Colors */
+    --bg-body: #0f172a;
+    --bg-card: #1e293b;
+    --bg-card-hover: #334155;
+    --bg-panel: #1e293b;
+    --bg-game-board: #0f172a;
+    --bg-input: #334155;
+    
+    /* Text Colors */
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    
+    /* Border Colors */
+    --border-color: #334155;
+    --border-color-light: #475569;
+    
+    /* Tetromino Colors */
+    --tetromino-i: #00f0f0;
+    --tetromino-o: #f0f000;
+    --tetromino-t: #a000f0;
+    --tetromino-s: #00f000;
+    --tetromino-z: #f00000;
+    --tetromino-j: #0000f0;
+    --tetromino-l: #f0a000;
+    
+    /* Spacing (8px increments) */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-2xl: 48px;
+    
+    /* Border Radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
+    
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-normal: 250ms ease;
+    --transition-slow: 350ms ease;
+    
+    /* Font */
+    --font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'Consolas', 'Monaco', monospace;
+}
+
+/* ============================================
+   Reset & Base Styles
+   ============================================ */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: var(--font-family);
+    background: var(--bg-body);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* ============================================
+   App Container
+   ============================================ */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--spacing-md);
+}
+
+/* ============================================
+   Header Styles
+   ============================================ */
+.game-header {
+    text-align: center;
+    padding: var(--spacing-lg) var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.game-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--color-primary-light), var(--tetromino-i));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: var(--spacing-sm);
+    text-shadow: var(--shadow-glow);
+}
+
+.game-subtitle {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+}
+
+/* ============================================
+   Main Game Layout - Flexbox
+   Requirement 9.2: Flex layout with consistent spacing
+   ============================================ */
+.game-main {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: var(--spacing-lg);
+    flex: 1;
+    flex-wrap: wrap;
+}
+
+/* ============================================
+   Panel Styles
+   Requirement 9.1: Visual layering with card shadows
+   ============================================ */
+.panel {
+    background: var(--bg-panel);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    transition: box-shadow var(--transition-normal);
+}
+
+.panel:hover {
+    box-shadow: var(--shadow-xl);
+}
+
+.panel-header {
+    background: rgba(99, 102, 241, 0.1);
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.panel-content {
+    padding: var(--spacing-md);
+}
+
+.panel-section {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-section:last-child {
+    border-bottom: none;
+}
+
+/* ============================================
+   AI Statistics Panel
+   Requirement 8.7: AI learning statistics display
+   ============================================ */
+.ai-stats-panel {
+    width: 220px;
+    min-width: 200px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.stat-item:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.stat-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-primary-light);
+    font-family: var(--font-mono);
+}
+
+/* ============================================
+   Game Center - Board Area
+   Requirement 8.1: 10x20 cell Game_Board
+   ============================================ */
+.game-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+/* ============================================
+   Score Display
+   Requirement 8.2: Display current score prominently
+   ============================================ */
+.score-display {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.score-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    padding: var(--spacing-md) var(--spacing-lg);
+    text-align: center;
+    min-width: 100px;
+    box-shadow: var(--shadow-md);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.score-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.score-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: var(--spacing-xs);
+}
+
+.score-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--tetromino-i);
+    font-family: var(--font-mono);
+}
+
+/* ============================================
+   Game Board Container
+   ============================================ */
+.game-board-container {
+    position: relative;
+    background: var(--bg-game-board);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--border-color-light);
+    box-shadow: var(--shadow-xl), inset 0 0 30px rgba(0, 0, 0, 0.5);
+    padding: var(--spacing-sm);
+}
+
+.game-canvas {
+    display: block;
+    background: var(--bg-game-board);
+    border-radius: var(--radius-sm);
+}
+
+/* ============================================
+   Game Overlay (Game Over, Pause)
+   ============================================ */
+.game-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(4px);
+}
+
+.game-overlay.active {
+    display: flex;
+}
+
+.overlay-content {
+    text-align: center;
+    padding: var(--spacing-xl);
+}
+
+.overlay-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--tetromino-z);
+    margin-bottom: var(--spacing-md);
+}
+
+.overlay-score {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* ============================================
+   Control Panel
+   ============================================ */
+.control-panel {
+    width: 260px;
+    min-width: 240px;
+}
+
+/* ============================================
+   Next Piece Preview
+   Requirement 8.3: Preview area showing next Tetromino
+   ============================================ */
+.next-piece-container {
+    display: flex;
+    justify-content: center;
+    padding: var(--spacing-md);
+    background: var(--bg-game-board);
+    border-radius: var(--radius-md);
+    margin: var(--spacing-sm);
+}
+
+.next-piece-canvas {
+    display: block;
+    background: transparent;
+}
+
+/* ============================================
+   Button Styles
+   Requirement 9.3: Hover effects on interactive buttons
+   ============================================ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: var(--font-family);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: var(--color-primary);
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg), 0 0 20px rgba(99, 102, 241, 0.4);
+}
+
+.btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--bg-card-hover);
+    border-color: var(--border-color-light);
+    transform: translateY(-1px);
+}
+
+.btn-large {
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: 1rem;
+}
+
+.control-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+/* ============================================
+   AI Toggle Switch
+   Requirement 8.4: AI control toggle switch
+   ============================================ */
+.ai-toggle-container {
+    padding: var(--spacing-sm) 0;
+}
+
+.toggle-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.toggle-text {
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.toggle-switch {
+    position: relative;
+    width: 52px;
+    height: 28px;
+}
+
+.toggle-input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-input);
+    border-radius: 28px;
+    border: 1px solid var(--border-color);
+    transition: var(--transition-normal);
+}
+
+.toggle-slider::before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background: var(--text-secondary);
+    border-radius: 50%;
+    transition: var(--transition-normal);
+}
+
+.toggle-input:checked + .toggle-slider {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.toggle-input:checked + .toggle-slider::before {
+    transform: translateX(24px);
+    background: white;
+}
+
+.toggle-input:focus + .toggle-slider {
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+}
+
+/* ============================================
+   Sound Toggle (Placeholder)
+   Requirement 3.3: Sound effects toggle option
+   ============================================ */
+.sound-toggle-container {
+    padding: var(--spacing-sm) 0;
+}
+
+.setting-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: var(--spacing-sm);
+    text-align: center;
+}
+
+.toggle-input:disabled + .toggle-slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.toggle-input:disabled + .toggle-slider::before {
+    background: var(--text-muted);
+}
+
+/* ============================================
+   Speed Slider
+   Requirement 8.5: Game speed adjustment slider
+   ============================================ */
+.speed-control {
+    padding: var(--spacing-sm) 0;
+}
+
+.speed-slider {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--bg-input);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+.speed-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-fast);
+}
+
+.speed-slider::-webkit-slider-thumb:hover {
+    background: var(--color-primary-hover);
+    transform: scale(1.1);
+}
+
+.speed-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    cursor: pointer;
+    border: none;
+    box-shadow: var(--shadow-md);
+}
+
+.speed-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--spacing-sm);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.speed-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-primary-light);
+    font-family: var(--font-mono);
+}
+
+/* ============================================
+   Keyboard Info
+   ============================================ */
+.keyboard-info {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+}
+
+.key-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 24px;
+    padding: 0 var(--spacing-sm);
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-primary);
+    box-shadow: 0 2px 0 var(--border-color);
+}
+
+/* ============================================
+   Footer Styles
+   ============================================ */
+.game-footer {
+    text-align: center;
+    padding: var(--spacing-lg) var(--spacing-md);
+    margin-top: var(--spacing-lg);
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    border-top: 1px solid var(--border-color);
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 1200px) {
+    .game-main {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .ai-stats-panel,
+    .control-panel {
+        width: 100%;
+        max-width: 400px;
+    }
+    
+    .ai-stats-panel {
+        order: 3;
+    }
+    
+    .game-center {
+        order: 1;
+    }
+    
+    .control-panel {
+        order: 2;
+    }
+}
+
+@media (max-width: 768px) {
+    .app-container {
+        padding: var(--spacing-sm);
+    }
+    
+    .game-title {
+        font-size: 1.75rem;
+    }
+    
+    .game-subtitle {
+        font-size: 0.875rem;
+    }
+    
+    .score-display {
+        gap: var(--spacing-sm);
+    }
+    
+    .score-card {
+        padding: var(--spacing-sm) var(--spacing-md);
+        min-width: 80px;
+    }
+    
+    .score-value {
+        font-size: 1.25rem;
+    }
+    
+    .game-board-container {
+        padding: var(--spacing-xs);
+    }
+    
+    .panel-section {
+        padding: var(--spacing-sm);
+    }
+    
+    .keyboard-info {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-title {
+        font-size: 1.5rem;
+    }
+    
+    .score-display {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .score-card {
+        width: 100%;
+    }
+    
+    /* Scale down game canvas for small screens */
+    .game-canvas {
+        max-width: 100%;
+        height: auto;
+    }
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes glow {
+    0%, 100% {
+        box-shadow: var(--shadow-lg);
+    }
+    50% {
+        box-shadow: var(--shadow-lg), 0 0 30px rgba(99, 102, 241, 0.5);
+    }
+}
+
+.game-board-container.playing {
+    animation: glow 2s ease-in-out infinite;
+}
+
+/* Line clear animation class */
+.line-clearing {
+    animation: pulse 0.3s ease-in-out;
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+.hidden {
+    display: none !important;
+}
+
+.visible {
+    display: block !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-primary {
+    color: var(--color-primary-light);
+}
+
+.text-success {
+    color: var(--tetromino-s);
+}
+
+.text-warning {
+    color: var(--tetromino-l);
+}
+
+.text-danger {
+    color: var(--tetromino-z);
+}

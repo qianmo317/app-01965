@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris AI Game - 俄罗斯方块AI游戏</title>
+    <link rel="stylesheet" href="src/ui/styles.css">
+</head>
+<body>
+    <div id="app" class="app-container">
+        <!-- Header -->
+        <header class="game-header">
+            <h1 class="game-title">🎮 Tetris AI Game</h1>
+            <p class="game-subtitle">俄罗斯方块AI游戏</p>
+        </header>
+
+        <!-- Main Game Container -->
+        <main class="game-main">
+            <!-- Left Panel - AI Statistics -->
+            <aside class="panel ai-stats-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">📊 AI 学习统计</h2>
+                </div>
+                <div class="panel-content">
+                    <div class="stat-item">
+                        <span class="stat-label">游戏次数</span>
+                        <span class="stat-value" id="games-played">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">最高分数</span>
+                        <span class="stat-value" id="best-score">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">平均分数</span>
+                        <span class="stat-value" id="avg-score">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">总消行数</span>
+                        <span class="stat-value" id="total-lines">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">探索率 (ε)</span>
+                        <span class="stat-value" id="epsilon-value">1.00</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center - Game Board Area -->
+            <section class="game-center">
+                <!-- Score Display -->
+                <div class="score-display">
+                    <div class="score-card">
+                        <span class="score-label">当前分数</span>
+                        <span class="score-value" id="current-score">0</span>
+                    </div>
+                    <div class="score-card">
+                        <span class="score-label">消除行数</span>
+                        <span class="score-value" id="lines-cleared">0</span>
+                    </div>
+                    <div class="score-card">
+                        <span class="score-label">等级</span>
+                        <span class="score-value" id="current-level">1</span>
+                    </div>
+                </div>
+
+                <!-- Game Canvas Container -->
+                <div class="game-board-container">
+                    <canvas id="game-canvas" class="game-canvas" width="300" height="600"></canvas>
+                    <!-- Game Over Overlay -->
+                    <div class="game-overlay" id="game-overlay">
+                        <div class="overlay-content">
+                            <h2 class="overlay-title" id="overlay-title">游戏结束</h2>
+                            <p class="overlay-score" id="overlay-score">最终分数: 0</p>
+                            <button class="btn btn-primary" id="restart-btn-overlay">重新开始</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel - Controls & Next Piece -->
+            <aside class="panel control-panel">
+                <!-- Next Piece Preview -->
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <h2 class="panel-title">⏭️ 下一个方块</h2>
+                    </div>
+                    <div class="next-piece-container">
+                        <canvas id="next-piece-canvas" class="next-piece-canvas" width="120" height="120"></canvas>
+                    </div>
+                </div>
+
+                <!-- Game Controls -->
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <h2 class="panel-title">🎮 游戏控制</h2>
+                    </div>
+                    <div class="control-buttons">
+                        <button class="btn btn-primary btn-large" id="start-btn">开始游戏</button>
+                        <button class="btn btn-secondary" id="pause-btn" disabled>暂停</button>
+                        <button class="btn btn-secondary" id="restart-btn">重新开始</button>
+                    </div>
+                </div>
+
+                <!-- AI Control -->
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <h2 class="panel-title">🤖 AI 控制</h2>
+                    </div>
+                    <div class="ai-toggle-container">
+                        <label class="toggle-label">
+                            <span class="toggle-text">AI 自动模式</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="ai-toggle" class="toggle-input">
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Sound Control (Placeholder) -->
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <h2 class="panel-title">🔊 音效设置</h2>
+                    </div>
+                    <div class="sound-toggle-container">
+                        <label class="toggle-label">
+                            <span class="toggle-text">音效开关</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="sound-toggle" class="toggle-input" disabled>
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                        <p class="setting-hint">音效功能即将推出</p>
+                    </div>
+                </div>
+
+                <!-- Speed Control -->
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <h2 class="panel-title">⚡ 游戏速度</h2>
+                    </div>
+                    <div class="speed-control">
+                        <input type="range" id="speed-slider" class="speed-slider" min="1" max="10" value="5">
+                        <div class="speed-labels">
+                            <span>慢</span>
+                            <span class="speed-value" id="speed-value">5</span>
+                            <span>快</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Keyboard Controls Info -->
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <h2 class="panel-title">⌨️ 键盘操作</h2>
+                    </div>
+                    <div class="keyboard-info" id="key-bindings-display">
+                        <div class="key-item" id="key-binding-left">
+                            <kbd id="key-left">←</kbd><span>左移</span>
+                        </div>
+                        <div class="key-item" id="key-binding-right">
+                            <kbd id="key-right">→</kbd><span>右移</span>
+                        </div>
+                        <div class="key-item" id="key-binding-down">
+                            <kbd id="key-down">↓</kbd><span>软降</span>
+                        </div>
+                        <div class="key-item" id="key-binding-rotateCW">
+                            <kbd id="key-rotateCW">↑</kbd><span>顺时针旋转</span>
+                        </div>
+                        <div class="key-item" id="key-binding-rotateCCW">
+                            <kbd id="key-rotateCCW">Z</kbd><span>逆时针旋转</span>
+                        </div>
+                        <div class="key-item" id="key-binding-drop">
+                            <kbd id="key-drop">Space</kbd><span>硬降</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Footer -->
+        <footer class="game-footer">
+            <p>Tetris AI Game © 2024 | 使用 HTML5 Canvas 构建</p>
+        </footer>
+    </div>
+    
+    <!-- Core modules -->
+    <script type="module" src="src/core/tetromino.js"></script>
+    <script type="module" src="src/core/tetromino-factory.js"></script>
+    <script type="module" src="src/core/board-manager.js"></script>
+    <script type="module" src="src/core/game-engine.js"></script>
+    <script type="module" src="src/core/input-handler.js"></script>
+    
+    <!-- AI modules -->
+    <script type="module" src="src/ai/state-evaluator.js"></script>
+    <script type="module" src="src/ai/ai-controller.js"></script>
+    <script type="module" src="src/ai/rl-agent.js"></script>
+    
+    <!-- Render modules -->
+    <script type="module" src="src/render/canvas-renderer.js"></script>
+    
+    <!-- Main application -->
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

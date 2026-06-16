@@ -1,0 +1,27 @@
+{
+  "name": "tetris-ai-game",
+  "version": "1.0.0",
+  "description": "Tetris AI Game with Reinforcement Learning",
+  "type": "module",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve . -l 3000",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "fast-check": "^3.15.0",
+    "@jest/globals": "^29.7.0"
+  },
+  "keywords": [
+    "tetris",
+    "ai",
+    "reinforcement-learning",
+    "game"
+  ],
+  "author": "",
+  "license": "MIT"
+}
