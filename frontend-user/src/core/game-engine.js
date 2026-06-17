@@ -245,6 +245,12 @@ class GameEngine {
         this.currentTetromino = null;
         this.nextTetromino = null;
         
+        // 暂存方块（Hold）状态
+        // holdTetromino: 暂存区中的方块（null 表示暂存区为空）
+        // canHold: 当前下落轮次是否允许暂存，每轮下落只能暂存一次
+        this.holdTetromino = null;
+        this.canHold = true;
+        
         // 时间控制
         this.dropInterval = SPEED_INTERVALS[this.speed];
         this.lastDropTime = 0;
@@ -345,6 +351,9 @@ class GameEngine {
             this.onLinesCleared(cleared, this.linesCleared);
         }
         
+        // 新方块下落开始，重置暂存权限（每轮下落可暂存一次）
+        this.canHold = true;
+        
         // 生成新方块
         this._spawnTetromino();
     }
@@ -390,6 +399,8 @@ class GameEngine {
             this.level = 1;
             this.currentTetromino = null;
             this.nextTetromino = null;
+            this.holdTetromino = null;
+            this.canHold = true;
             this.accumulatedTime = 0;
         }
         
@@ -574,6 +585,72 @@ class GameEngine {
     }
     
     /**
+     * 暂存当前方块（Hold）
+     * 
+     * 将当前活动方块存入暂存区，或与暂存区中的方块交换。
+     * 每轮下落只能暂存一次，方块锁定后生成新方块时重置暂存权限。
+     * 
+     * ## 行为逻辑
+     * 
+     * 1. **暂存区为空**：将当前方块的类型存入暂存区（重置旋转状态），
+     *    然后生成下一个方块（下一个预览方块变为当前方块，并生成新的预览）。
+     * 2. **暂存区已占用**：交换当前方块与暂存方块。暂存区中的方块类型
+     *    成为新的当前方块（在生成位置、旋转状态为0），当前方块的类型
+     *    存入暂存区。
+     * 
+     * 交换后方块会重置为初始旋转状态（rotationIndex = 0），
+     * 并放置在棋盘顶部的生成位置。
+     * 
+     * ## 限制
+     * - 游戏必须处于进行中状态
+     * - 必须存在当前活动方块
+     * - 当前下落轮次尚未暂存过（canHold === true）
+     * 
+     * 暂存后 canHold 置为 false，直到当前方块锁定、新方块生成时才恢复为 true，
+     * 从而保证每轮下落只能暂存一次，不能无限反复交换。
+     * 
+     * @returns {boolean} 如果暂存成功返回true，否则返回false
+     * 
+     * @example
+     * document.addEventListener('keydown', (e) => {
+     *     if (e.code === 'KeyC') engine.hold();
+     * });
+     */
+    hold() {
+        if (this.gameState !== GAME_STATES.PLAYING || !this.currentTetromino || !this.canHold) {
+            return false;
+        }
+        
+        const spawnPos = this._getSpawnPosition();
+        const currentType = this.currentTetromino.type;
+        
+        if (this.holdTetromino === null) {
+            // 暂存区为空：存入当前方块，生成下一个方块
+            this.holdTetromino = this.factory.createByType(currentType);
+            if (!this._spawnTetromino()) {
+                return false;
+            }
+        } else {
+            // 暂存区已占用：交换当前方块与暂存方块
+            const heldType = this.holdTetromino.type;
+            this.holdTetromino = this.factory.createByType(currentType);
+            this.currentTetromino = this.factory.createByType(heldType, spawnPos.x, spawnPos.y);
+            
+            // 检查交换后方块是否可以放置（游戏结束检测）
+            if (this.board.isGameOver(this.currentTetromino)) {
+                this._triggerGameOver();
+                return false;
+            }
+            
+            this.onPieceSpawned(this.currentTetromino, this.nextTetromino);
+        }
+        
+        // 每轮下落只能暂存一次
+        this.canHold = false;
+        return true;
+    }
+    
+    /**
      * 顺时针旋转
      * 
      * 将当前方块顺时针旋转90度。使用Wall Kick系统处理碰撞。
@@ -717,6 +794,8 @@ class GameEngine {
             speed: this.speed,
             currentTetromino: this.currentTetromino,
             nextTetromino: this.nextTetromino,
+            holdTetromino: this.holdTetromino,
+            canHold: this.canHold,
             board: this.board.getGridCopy()
         };
     }
