@@ -23,6 +23,7 @@ class MockGameEngine {
         this.hardDropCalled = 0;
         this.rotateClockwiseCalled = 0;
         this.rotateCounterClockwiseCalled = 0;
+        this.holdCalled = 0;
     }
     
     isPlaying() {
@@ -63,6 +64,11 @@ class MockGameEngine {
         return true;
     }
     
+    hold() {
+        this.holdCalled++;
+        return true;
+    }
+    
     resetCalls() {
         this.moveLeftCalled = 0;
         this.moveRightCalled = 0;
@@ -70,6 +76,7 @@ class MockGameEngine {
         this.hardDropCalled = 0;
         this.rotateClockwiseCalled = 0;
         this.rotateCounterClockwiseCalled = 0;
+        this.holdCalled = 0;
     }
 }
 
@@ -139,6 +146,7 @@ describe('InputHandler', () => {
             expect(DEFAULT_KEY_BINDINGS.drop).toBe('Space');
             expect(DEFAULT_KEY_BINDINGS.rotateCW).toBe('ArrowUp');
             expect(DEFAULT_KEY_BINDINGS.rotateCCW).toBe('KeyZ');
+            expect(DEFAULT_KEY_BINDINGS.hold).toBe('KeyC');
         });
         
         test('setKeyBinding() should update binding', () => {
@@ -211,6 +219,25 @@ describe('InputHandler', () => {
             
             expect(mockEngine.rotateCounterClockwiseCalled).toBe(1);
             expect(event.preventDefault).toHaveBeenCalled();
+        });
+    });
+    
+    describe('Key Down Handling - Hold (暂存方块)', () => {
+        test('KeyC should call hold()', () => {
+            const event = createKeyEvent('KeyC');
+            inputHandler.handleKeyDown(event);
+            
+            expect(mockEngine.holdCalled).toBe(1);
+            expect(event.preventDefault).toHaveBeenCalled();
+        });
+        
+        test('hold should not execute when game is not playing', () => {
+            mockEngine.setPlaying(false);
+            
+            const event = createKeyEvent('KeyC');
+            inputHandler.handleKeyDown(event);
+            
+            expect(mockEngine.holdCalled).toBe(0);
         });
     });
     

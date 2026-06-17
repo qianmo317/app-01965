@@ -47,6 +47,7 @@
  * @property {string} drop - 硬降按键，默认为空格键
  * @property {string} rotateCW - 顺时针旋转按键，默认为上箭头
  * @property {string} rotateCCW - 逆时针旋转按键，默认为Z键
+ * @property {string} hold - 暂存方块按键，默认为C键
  */
 const DEFAULT_KEY_BINDINGS = {
     left: 'ArrowLeft',      // 左移
@@ -54,7 +55,8 @@ const DEFAULT_KEY_BINDINGS = {
     down: 'ArrowDown',      // 软降
     drop: 'Space',          // 硬降
     rotateCW: 'ArrowUp',    // 顺时针旋转
-    rotateCCW: 'KeyZ'       // 逆时针旋转
+    rotateCCW: 'KeyZ',      // 逆时针旋转
+    hold: 'KeyC'            // 暂存方块（Hold）
 };
 
 /**
@@ -81,6 +83,7 @@ const SOFT_DROP_THROTTLE_INTERVAL = 30;
  * @property {string} drop - 硬降动作的按键代码
  * @property {string} rotateCW - 顺时针旋转动作的按键代码
  * @property {string} rotateCCW - 逆时针旋转动作的按键代码
+ * @property {string} hold - 暂存方块动作的按键代码
  */
 
 /**
@@ -111,6 +114,7 @@ const SOFT_DROP_THROTTLE_INTERVAL = 30;
  * - drop: 硬降（立即落到底部）
  * - rotateCW: 顺时针旋转
  * - rotateCCW: 逆时针旋转
+ * - hold: 暂存方块（每轮下落只能暂存一次）
  * 
  * Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.2
  * 
@@ -258,6 +262,7 @@ class InputHandler {
      * - drop: gameEngine.hardDrop() - Requirement 2.4
      * - rotateCW: gameEngine.rotateClockwise() - Requirement 3.1
      * - rotateCCW: gameEngine.rotateCounterClockwise() - Requirement 3.2
+     * - hold: gameEngine.hold() - 暂存方块
      */
     _executeAction(action) {
         // 检查游戏是否正在进行
@@ -297,6 +302,10 @@ class InputHandler {
             case 'rotateCCW':
                 // Requirement 3.2: Z键逆时针旋转
                 result = this.gameEngine.rotateCounterClockwise();
+                break;
+            case 'hold':
+                // 暂存当前方块（每轮下落只能暂存一次）
+                result = this.gameEngine.hold();
                 break;
             default:
                 return false;

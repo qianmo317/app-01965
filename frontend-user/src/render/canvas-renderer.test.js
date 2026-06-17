@@ -423,6 +423,59 @@ describe('CanvasRenderer', () => {
         });
     });
     
+    describe('Hold Piece Preview (暂存方块)', () => {
+        test('setHoldPieceCanvas should bind hold canvas', () => {
+            const { canvas: holdCanvas } = createMockCanvas();
+            
+            renderer.setHoldPieceCanvas(holdCanvas);
+            
+            expect(renderer.holdPieceCanvas).toBe(holdCanvas);
+            expect(renderer.holdPieceCtx).not.toBeNull();
+        });
+        
+        test('renderHoldPiece should render held piece in preview canvas', () => {
+            const { canvas: holdCanvas, ctx: holdCtx } = createMockCanvas();
+            renderer.setHoldPieceCanvas(holdCanvas);
+            const tetromino = new Tetromino('O', 0, 0);
+            
+            holdCtx.fillRect.mockClear();
+            renderer.renderHoldPiece(tetromino, true);
+            
+            expect(holdCtx.fillRect).toHaveBeenCalled();
+        });
+        
+        test('renderHoldPiece should render empty area when tetromino is null', () => {
+            const { canvas: holdCanvas, ctx: holdCtx } = createMockCanvas();
+            renderer.setHoldPieceCanvas(holdCanvas);
+            
+            holdCtx.fillRect.mockClear();
+            holdCtx.strokeRect.mockClear();
+            renderer.renderHoldPiece(null, true);
+            
+            // 背景填充与边框仍应渲染
+            expect(holdCtx.fillRect).toHaveBeenCalled();
+            expect(holdCtx.strokeRect).toHaveBeenCalled();
+        });
+        
+        test('renderHoldPiece should dim piece when canHold is false', () => {
+            const { canvas: holdCanvas, ctx: holdCtx } = createMockCanvas();
+            renderer.setHoldPieceCanvas(holdCanvas);
+            const tetromino = new Tetromino('T', 0, 0);
+            
+            holdCtx.save.mockClear();
+            renderer.renderHoldPiece(tetromino, false);
+            
+            expect(holdCtx.save).toHaveBeenCalled();
+            expect(holdCtx.globalAlpha).toBe(GHOST_PIECE_ALPHA);
+        });
+        
+        test('renderHoldPiece should not throw when hold canvas is not set', () => {
+            const tetromino = new Tetromino('I', 0, 0);
+            
+            expect(() => renderer.renderHoldPiece(tetromino, true)).not.toThrow();
+        });
+    });
+    
     describe('Game Over Rendering (Requirement 5.3)', () => {
         test('should render game over overlay', () => {
             mockCtx.fillRect.mockClear();

@@ -204,6 +204,8 @@ class CanvasRenderer {
         this.ctx = canvas.getContext('2d');
         this.nextPieceCanvas = nextPieceCanvas;
         this.nextPieceCtx = nextPieceCanvas ? nextPieceCanvas.getContext('2d') : null;
+        this.holdPieceCanvas = null;
+        this.holdPieceCtx = null;
         
         // 计算单元格大小
         this.cellSize = options.cellSize || DEFAULT_CELL_SIZE;
@@ -267,6 +269,13 @@ class CanvasRenderer {
             this.nextPieceCanvas.height = 4 * this.cellSize;
             this.nextPieceCtx.imageSmoothingEnabled = false;
         }
+        
+        // 初始化暂存方块预览Canvas
+        if (this.holdPieceCanvas && this.holdPieceCtx) {
+            this.holdPieceCanvas.width = 4 * this.cellSize;
+            this.holdPieceCanvas.height = 4 * this.cellSize;
+            this.holdPieceCtx.imageSmoothingEnabled = false;
+        }
     }
     
     /**
@@ -327,6 +336,9 @@ class CanvasRenderer {
         if (gameState.nextTetromino) {
             this.renderNextPiece(gameState.nextTetromino);
         }
+        
+        // 渲染暂存方块预览（暂存区为空时渲染空白占位）
+        this.renderHoldPiece(gameState.holdTetromino, gameState.canHold);
         
         // 渲染游戏结束画面
         if (gameState.gameState === 'gameover') {
@@ -633,6 +645,103 @@ class CanvasRenderer {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
         ctx.fillRect(pixelX + size - 4, pixelY + 4, 3, size - 5);
         ctx.fillRect(pixelX + 4, pixelY + size - 4, size - 5, 3);
+    }
+    
+    /**
+     * 渲染暂存方块预览（Hold Piece）
+     * 
+     * 在暂存区Canvas上显示当前暂存的方块。暂存区为空时渲染空白占位框，
+     * 保持暂存区始终可见。当本轮下落不可再暂存时（canHold === false），
+     * 将暂存方块以降低透明度渲染，直观提示玩家本轮无法再次交换。
+     * 
+     * @param {Tetromino|null} tetromino - 暂存的方块对象，null表示暂存区为空
+     * @param {boolean} [canHold=true] - 当前下落轮次是否允许暂存，false时方块变暗
+     * 
+     * @description
+     * 渲染逻辑与下一个方块预览（renderNextPiece）保持一致：
+     * 1. 使用背景色填充暂存区画布
+     * 2. 方块在4x4区域内居中显示
+     * 3. 绘制边框
+     * 
+     * 如果没有配置holdPieceCanvas，此方法不执行任何操作。
+     * 
+     * @example
+     * // 渲染暂存方块
+     * renderer.renderHoldPiece(holdTetromino, canHold);
+     */
+    renderHoldPiece(tetromino, canHold = true) {
+        if (!this.holdPieceCtx) return;
+        
+        const ctx = this.holdPieceCtx;
+        const canvas = this.holdPieceCanvas;
+        
+        // 清空预览画布
+        ctx.fillStyle = GRID_BACKGROUND_COLOR;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // 渲染暂存方块（如果有）
+        if (tetromino) {
+            const shape = tetromino.shape;
+            const color = tetromino.color;
+            
+            // 本轮不可暂存时降低透明度，提示暂存区已锁定
+            ctx.save();
+            if (canHold === false) {
+                ctx.globalAlpha = GHOST_PIECE_ALPHA;
+            }
+            
+            // 计算居中偏移
+            const shapeWidth = shape[0].length;
+            const shapeHeight = shape.length;
+            const offsetX = Math.floor((4 - shapeWidth) / 2);
+            const offsetY = Math.floor((4 - shapeHeight) / 2);
+            
+            // 渲染方块
+            for (let row = 0; row < shape.length; row++) {
+                for (let col = 0; col < shape[row].length; col++) {
+                    if (shape[row][col] !== 0) {
+                        const x = offsetX + col;
+                        const y = offsetY + row;
+                        this._renderNextPieceCell(ctx, x, y, color);
+                    }
+                }
+            }
+            
+            ctx.restore();
+        }
+        
+        // 渲染边框
+        ctx.strokeStyle = GRID_LINE_COLOR;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    /**
+     * 设置暂存方块预览Canvas
+     * 
+     * 绑定用于渲染暂存方块的Canvas元素，并初始化其尺寸和上下文。
+     * 
+     * @param {HTMLCanvasElement} canvas - 暂存方块预览Canvas元素
+     * 
+     * @description
+     * 此方法会：
+     * 1. 保存Canvas及其2D上下文引用
+     * 2. 根据当前单元格大小初始化Canvas尺寸
+     * 3. 禁用图像平滑以获得清晰的像素渲染
+     * 
+     * @example
+     * const holdCanvas = document.getElementById('hold-piece-canvas');
+     * renderer.setHoldPieceCanvas(holdCanvas);
+     */
+    setHoldPieceCanvas(canvas) {
+        this.holdPieceCanvas = canvas;
+        this.holdPieceCtx = canvas ? canvas.getContext('2d') : null;
+        
+        if (this.holdPieceCanvas && this.holdPieceCtx) {
+            this.holdPieceCanvas.width = 4 * this.cellSize;
+            this.holdPieceCanvas.height = 4 * this.cellSize;
+            this.holdPieceCtx.imageSmoothingEnabled = false;
+        }
     }
     
     /**

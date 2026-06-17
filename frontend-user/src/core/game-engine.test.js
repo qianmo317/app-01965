@@ -208,6 +208,107 @@ describe('GameEngine', () => {
         });
     });
     
+    describe('Hold Feature (暂存方块)', () => {
+        beforeEach(() => {
+            engine.start();
+        });
+        
+        test('should initialize with empty hold and canHold true', () => {
+            expect(engine.holdTetromino).toBeNull();
+            expect(engine.canHold).toBe(true);
+        });
+        
+        test('hold() should store current piece when hold is empty', () => {
+            const currentType = engine.currentTetromino.type;
+            const result = engine.hold();
+            
+            expect(result).toBe(true);
+            expect(engine.holdTetromino).not.toBeNull();
+            expect(engine.holdTetromino.type).toBe(currentType);
+        });
+        
+        test('hold() should bring next piece to current when hold is empty', () => {
+            const oldNext = engine.nextTetromino;
+            engine.hold();
+            
+            expect(engine.currentTetromino).toBe(oldNext);
+            expect(engine.nextTetromino).not.toBe(oldNext);
+        });
+        
+        test('hold() should set canHold to false after holding', () => {
+            engine.hold();
+            expect(engine.canHold).toBe(false);
+        });
+        
+        test('hold() should not allow holding twice in one drop', () => {
+            const firstHold = engine.hold();
+            const heldType = engine.holdTetromino.type;
+            const secondHold = engine.hold();
+            
+            expect(firstHold).toBe(true);
+            expect(secondHold).toBe(false);
+            expect(engine.holdTetromino.type).toBe(heldType);
+        });
+        
+        test('hold() should swap current and held pieces when hold is occupied', () => {
+            const currentType = engine.currentTetromino.type;
+            engine.hold(); // 存入 currentType，canHold=false
+            
+            // 模拟下一轮下落：重置暂存权限
+            engine.canHold = true;
+            const currentType2 = engine.currentTetromino.type;
+            engine.hold(); // 交换
+            
+            expect(engine.currentTetromino.type).toBe(currentType);
+            expect(engine.holdTetromino.type).toBe(currentType2);
+        });
+        
+        test('hold() should reset held piece rotation to initial state', () => {
+            engine.currentTetromino.setRotationIndex(2);
+            const currentType = engine.currentTetromino.type;
+            engine.hold();
+            
+            expect(engine.holdTetromino.type).toBe(currentType);
+            expect(engine.holdTetromino.rotationIndex).toBe(0);
+        });
+        
+        test('hold() should not work when game is not playing', () => {
+            engine.pause();
+            const result = engine.hold();
+            
+            expect(result).toBe(false);
+            expect(engine.holdTetromino).toBeNull();
+        });
+        
+        test('canHold should reset after piece locks and new piece spawns', () => {
+            engine.hold();
+            expect(engine.canHold).toBe(false);
+            
+            engine.hardDrop(); // 锁定方块并生成新方块
+            
+            expect(engine.canHold).toBe(true);
+        });
+        
+        test('restart() should reset hold state', () => {
+            engine.hold();
+            expect(engine.holdTetromino).not.toBeNull();
+            
+            engine.restart();
+            
+            expect(engine.holdTetromino).toBeNull();
+            expect(engine.canHold).toBe(true);
+        });
+        
+        test('getState() should include holdTetromino and canHold', () => {
+            const state = engine.getState();
+            
+            expect(state).toHaveProperty('holdTetromino');
+            expect(state).toHaveProperty('canHold');
+            expect(state.canHold).toBe(true);
+            expect(state.holdTetromino).toBeNull();
+        });
+    });
+    
     describe('Scoring System (Requirements 4.3-4.6)', () => {
         test('SCORING_RULES should have correct values', () => {
             expect(SCORING_RULES[1]).toBe(100);
