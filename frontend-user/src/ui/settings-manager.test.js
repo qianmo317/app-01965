@@ -394,7 +394,8 @@ describe('SettingsManager', () => {
                 down: 'KeyS',
                 drop: 'KeyW',
                 rotateCW: 'KeyE',
-                rotateCCW: 'KeyQ'
+                rotateCCW: 'KeyQ',
+                hold: 'KeyC'
             };
             
             const result = settingsManager.setKeyBindings(newBindings);
@@ -435,7 +436,7 @@ describe('SettingsManager', () => {
             const display = settingsManager.getKeyBindingsDisplay();
             
             expect(Array.isArray(display)).toBe(true);
-            expect(display.length).toBe(6);
+            expect(display.length).toBe(7);
         });
         
         test('should return correct structure for each binding', () => {
@@ -451,7 +452,7 @@ describe('SettingsManager', () => {
         
         test('should return bindings in correct order', () => {
             const display = settingsManager.getKeyBindingsDisplay();
-            const expectedOrder = ['left', 'right', 'down', 'rotateCW', 'rotateCCW', 'drop'];
+            const expectedOrder = ['left', 'right', 'down', 'rotateCW', 'rotateCCW', 'drop', 'hold'];
             
             const actualOrder = display.map(b => b.action);
             expect(actualOrder).toEqual(expectedOrder);
@@ -733,13 +734,34 @@ describe('SettingsManager', () => {
             expect(result).toBe(false);
         });
         
-        test('should reject settings with missing key bindings', () => {
+        test('should accept settings with partial key bindings and merge defaults', () => {
+            const partialSettings = {
+                ...DEFAULT_SETTINGS,
+                keyBindings: {
+                    left: 'KeyA',
+                    right: 'KeyD'
+                }
+            };
+            
+            mockStorage.setItem(STORAGE_KEY, JSON.stringify(partialSettings));
+            
+            const result = settingsManager.loadSettings();
+            expect(result).toBe(true);
+            
+            // 已存在的绑定应该被保留
+            expect(settingsManager.getKeyBinding('left')).toBe('KeyA');
+            expect(settingsManager.getKeyBinding('right')).toBe('KeyD');
+            // 缺失的绑定应该使用默认值
+            expect(settingsManager.getKeyBinding('hold')).toBe('KeyC');
+            expect(settingsManager.getKeyBinding('drop')).toBe('Space');
+        });
+        
+        test('should reject settings when keyBindings has wrong type values', () => {
             const invalidSettings = {
                 ...DEFAULT_SETTINGS,
                 keyBindings: {
-                    left: 'ArrowLeft',
+                    left: 123, // 应该是字符串
                     right: 'ArrowRight'
-                    // Missing other keys
                 }
             };
             

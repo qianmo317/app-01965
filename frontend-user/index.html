@@ -79,6 +79,16 @@
 
             <!-- Right Panel - Controls & Next Piece -->
             <aside class="panel control-panel">
+                <!-- Hold Piece Preview -->
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <h2 class="panel-title">💾 暂存方块</h2>
+                    </div>
+                    <div class="hold-piece-container">
+                        <canvas id="hold-piece-canvas" class="hold-piece-canvas" width="120" height="120"></canvas>
+                    </div>
+                </div>
+
                 <!-- Next Piece Preview -->
                 <div class="panel-section">
                     <div class="panel-header">
@@ -172,6 +182,9 @@
                         </div>
                         <div class="key-item" id="key-binding-drop">
                             <kbd id="key-drop">Space</kbd><span>硬降</span>
+                        </div>
+                        <div class="key-item" id="key-binding-hold">
+                            <kbd id="key-hold">C</kbd><span>暂存方块</span>
                         </div>
                     </div>
                 </div>

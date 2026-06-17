@@ -603,4 +603,151 @@ describe('GameEngine', () => {
             expect(engine.nextTetromino).not.toBe(oldNext);
         });
     });
+    
+    describe('Hold Piece (暂存方块)', () => {
+        test('should initialize with empty hold area', () => {
+            expect(engine.heldTetromino).toBeNull();
+        });
+        
+        test('should initialize with canHold = true', () => {
+            expect(engine.canHold).toBe(true);
+        });
+        
+        test('holdTetromino() should be a function', () => {
+            expect(typeof engine.holdTetromino).toBe('function');
+        });
+        
+        test('holdTetromino() should return false when game is not playing', () => {
+            expect(engine.gameState).toBe(GAME_STATES.IDLE);
+            const result = engine.holdTetromino();
+            expect(result).toBe(false);
+        });
+        
+        test('first hold should store current tetromino in hold area', () => {
+            engine.start();
+            const currentType = engine.currentTetromino.type;
+            
+            const result = engine.holdTetromino();
+            
+            expect(result).toBe(true);
+            expect(engine.heldTetromino).not.toBeNull();
+            expect(engine.heldTetromino.type).toBe(currentType);
+        });
+        
+        test('first hold should move next tetromino to current', () => {
+            engine.start();
+            const nextType = engine.nextTetromino.type;
+            
+            engine.holdTetromino();
+            
+            expect(engine.currentTetromino.type).toBe(nextType);
+        });
+        
+        test('first hold should generate a new next tetromino', () => {
+            engine.start();
+            const oldNext = engine.nextTetromino;
+            
+            engine.holdTetromino();
+            
+            expect(engine.nextTetromino).not.toBe(oldNext);
+        });
+        
+        test('hold should set canHold to false', () => {
+            engine.start();
+            
+            engine.holdTetromino();
+            
+            expect(engine.canHold).toBe(false);
+        });
+        
+        test('second hold in same round should fail', () => {
+            engine.start();
+            
+            engine.holdTetromino();
+            const result = engine.holdTetromino();
+            
+            expect(result).toBe(false);
+        });
+        
+        test('canHold should reset to true after piece locks', () => {
+            engine.start();
+            engine.holdTetromino();
+            expect(engine.canHold).toBe(false);
+            
+            engine.hardDrop();
+            
+            expect(engine.canHold).toBe(true);
+        });
+        
+        test('hold should swap with held tetromino when hold area is not empty', () => {
+            engine.start();
+            const firstCurrentType = engine.currentTetromino.type;
+            
+            engine.holdTetromino();
+            expect(engine.heldTetromino.type).toBe(firstCurrentType);
+            
+            engine.hardDrop();
+            expect(engine.canHold).toBe(true);
+            
+            const secondCurrentType = engine.currentTetromino.type;
+            engine.holdTetromino();
+            
+            expect(engine.heldTetromino.type).toBe(secondCurrentType);
+            expect(engine.currentTetromino.type).toBe(firstCurrentType);
+        });
+        
+        test('swapped tetromino should reset rotation to 0', () => {
+            engine.start();
+            
+            engine.rotateClockwise();
+            const rotatedIndex = engine.currentTetromino.rotationIndex;
+            expect(rotatedIndex).not.toBe(0);
+            
+            engine.holdTetromino();
+            engine.hardDrop();
+            engine.holdTetromino();
+            
+            expect(engine.currentTetromino.rotationIndex).toBe(0);
+        });
+        
+        test('swapped tetromino should reset to spawn position', () => {
+            engine.start();
+            const spawnPos = { x: Math.floor(engine.board.width / 2) - 2, y: 0 };
+            
+            engine.moveDown();
+            engine.moveDown();
+            expect(engine.currentTetromino.y).toBeGreaterThan(0);
+            
+            engine.holdTetromino();
+            engine.hardDrop();
+            engine.holdTetromino();
+            
+            expect(engine.currentTetromino.x).toBe(spawnPos.x);
+            expect(engine.currentTetromino.y).toBe(spawnPos.y);
+        });
+        
+        test('getState() should include holdTetromino and canHold', () => {
+            engine.start();
+            engine.holdTetromino();
+            
+            const state = engine.getState();
+            
+            expect(state).toHaveProperty('holdTetromino');
+            expect(state).toHaveProperty('canHold');
+            expect(state.holdTetromino).not.toBeNull();
+            expect(state.canHold).toBe(false);
+        });
+        
+        test('restart() should clear hold area and reset canHold', () => {
+            engine.start();
+            engine.holdTetromino();
+            expect(engine.heldTetromino).not.toBeNull();
+            expect(engine.canHold).toBe(false);
+            
+            engine.restart();
+            
+            expect(engine.heldTetromino).toBeNull();
+            expect(engine.canHold).toBe(true);
+        });
+    });
 });

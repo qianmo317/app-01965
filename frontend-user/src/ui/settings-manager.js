@@ -97,7 +97,8 @@ const DEFAULT_SETTINGS = {
         down: 'ArrowDown',
         drop: 'Space',
         rotateCW: 'ArrowUp',
-        rotateCCW: 'KeyZ'
+        rotateCCW: 'KeyZ',
+        hold: 'KeyC'
     }
 };
 
@@ -236,10 +237,13 @@ class SettingsManager {
             return false;
         }
         
-        // 验证按键绑定
-        const requiredKeys = ['left', 'right', 'down', 'drop', 'rotateCW', 'rotateCCW'];
-        for (const key of requiredKeys) {
-            if (typeof settings.keyBindings[key] !== 'string') {
+        // 验证按键绑定（只验证已存在的绑定是否为字符串类型，缺失的会用默认值填充）
+        if (typeof settings.keyBindings !== 'object' || settings.keyBindings === null) {
+            return false;
+        }
+        const validActions = ['left', 'right', 'down', 'drop', 'rotateCW', 'rotateCCW', 'hold'];
+        for (const key of Object.keys(settings.keyBindings)) {
+            if (validActions.includes(key) && typeof settings.keyBindings[key] !== 'string') {
                 return false;
             }
         }
@@ -512,7 +516,7 @@ class SettingsManager {
     
     /**
      * 获取指定动作的按键绑定
-     * @param {string} action - 动作名称 (left, right, down, drop, rotateCW, rotateCCW)
+     * @param {string} action - 动作名称 (left, right, down, drop, rotateCW, rotateCCW, hold)
      * @returns {string|null} - 按键名称，如果动作不存在则返回 null
      */
     getKeyBinding(action) {
@@ -549,7 +553,7 @@ class SettingsManager {
      * @returns {boolean} - 是否设置成功
      */
     setKeyBindings(keyBindings) {
-        const requiredKeys = ['left', 'right', 'down', 'drop', 'rotateCW', 'rotateCCW'];
+        const requiredKeys = ['left', 'right', 'down', 'drop', 'rotateCW', 'rotateCCW', 'hold'];
         
         // 验证所有必需的按键都存在
         for (const key of requiredKeys) {
@@ -592,7 +596,8 @@ class SettingsManager {
             down: '软降',
             drop: '硬降',
             rotateCW: '顺时针旋转',
-            rotateCCW: '逆时针旋转'
+            rotateCCW: '逆时针旋转',
+            hold: '暂存方块'
         };
         
         // 按键显示名称映射（将键码转换为用户友好的显示名称）
@@ -603,6 +608,7 @@ class SettingsManager {
             'ArrowDown': '↓',
             'Space': 'Space',
             'KeyZ': 'Z',
+            'KeyC': 'C',
             'KeyA': 'A',
             'KeyD': 'D',
             'KeyS': 'S',
@@ -612,7 +618,7 @@ class SettingsManager {
         };
         
         // 按照固定顺序返回按键绑定
-        const actionOrder = ['left', 'right', 'down', 'rotateCW', 'rotateCCW', 'drop'];
+        const actionOrder = ['left', 'right', 'down', 'rotateCW', 'rotateCCW', 'drop', 'hold'];
         
         return actionOrder.map(action => {
             const key = keyBindings[action];

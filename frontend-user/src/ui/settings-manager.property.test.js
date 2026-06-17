@@ -329,7 +329,7 @@ describe('SettingsManager 属性测试', () => {
         
         test('按键绑定往返保留所有值', () => {
             const validKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 
-                              'KeyA', 'KeyD', 'KeyS', 'KeyW', 'KeyQ', 'KeyE', 'KeyZ'];
+                              'KeyA', 'KeyD', 'KeyS', 'KeyW', 'KeyQ', 'KeyE', 'KeyZ', 'KeyC'];
             
             fc.assert(
                 fc.property(
@@ -339,8 +339,9 @@ describe('SettingsManager 属性测试', () => {
                     fc.constantFrom(...validKeys),
                     fc.constantFrom(...validKeys),
                     fc.constantFrom(...validKeys),
-                    (left, right, down, drop, rotateCW, rotateCCW) => {
-                        const keyBindings = { left, right, down, drop, rotateCW, rotateCCW };
+                    fc.constantFrom(...validKeys),
+                    (left, right, down, drop, rotateCW, rotateCCW, hold) => {
+                        const keyBindings = { left, right, down, drop, rotateCW, rotateCCW, hold };
                         
                         // 设置按键绑定
                         settingsManager.setKeyBindings(keyBindings);
@@ -363,6 +364,7 @@ describe('SettingsManager 属性测试', () => {
                         expect(loadedBindings.drop).toBe(drop);
                         expect(loadedBindings.rotateCW).toBe(rotateCW);
                         expect(loadedBindings.rotateCCW).toBe(rotateCCW);
+                        expect(loadedBindings.hold).toBe(hold);
                     }
                 ),
                 { numRuns: 100 }
