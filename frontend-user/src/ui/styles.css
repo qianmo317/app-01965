@@ -344,6 +344,31 @@ body {
 }
 
 /* ============================================
+   Hold Piece Preview
+   ============================================ */
+.hold-piece-container {
+    display: flex;
+    justify-content: center;
+    padding: var(--spacing-md);
+    background: var(--bg-game-board);
+    border-radius: var(--radius-md);
+    margin: var(--spacing-sm);
+}
+
+.hold-piece-canvas {
+    display: block;
+    background: transparent;
+}
+
+.hold-hint {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+    font-style: italic;
+}
+
+/* ============================================
    Next Piece Preview
    Requirement 8.3: Preview area showing next Tetromino
    ============================================ */

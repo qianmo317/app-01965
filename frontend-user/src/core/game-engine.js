@@ -245,6 +245,10 @@ class GameEngine {
         this.currentTetromino = null;
         this.nextTetromino = null;
         
+        // 暂存区
+        this.holdTetromino = null;
+        this.canHold = true;
+        
         // 时间控制
         this.dropInterval = SPEED_INTERVALS[this.speed];
         this.lastDropTime = 0;
@@ -347,6 +351,74 @@ class GameEngine {
         
         // 生成新方块
         this._spawnTetromino();
+        
+        // 重置暂存可用状态
+        this.canHold = true;
+    }
+    
+    /**
+     * 暂存当前方块
+     * 
+     * 将当前方块存入暂存区，或与暂存区中的方块交换。
+     * 每轮下落只能使用一次暂存功能。
+     * 
+     * @returns {boolean} 如果成功暂存或交换返回true，否则返回false
+     * 
+     * @example
+     * document.addEventListener('keydown', (e) => {
+     *     if (e.key === 'Shift' || e.code === 'KeyC') {
+     *         engine.holdPiece();
+     *     }
+     * });
+     */
+    holdPiece() {
+        if (this.gameState !== GAME_STATES.PLAYING || !this.currentTetromino) {
+            return false;
+        }
+        
+        // 每轮只能暂存一次
+        if (!this.canHold) {
+            return false;
+        }
+        
+        const spawnPos = this._getSpawnPosition();
+        
+        if (this.holdTetromino) {
+            // 有暂存方块，交换
+            const temp = this.holdTetromino;
+            
+            // 重置当前方块的旋转状态和位置后存入暂存区
+            const currentClone = this.currentTetromino.clone();
+            currentClone.reset();
+            this.holdTetromino = currentClone;
+            
+            // 将暂存的方块设为当前方块
+            this.currentTetromino = temp;
+            this.currentTetromino.x = spawnPos.x;
+            this.currentTetromino.y = spawnPos.y;
+            
+            // 检查新方块是否能放置
+            if (this.board.isGameOver(this.currentTetromino)) {
+                this._triggerGameOver();
+                return false;
+            }
+        } else {
+            // 暂存区为空，存入当前方块并生成新方块
+            const currentClone = this.currentTetromino.clone();
+            currentClone.reset();
+            this.holdTetromino = currentClone;
+            
+            // 使用下一个方块作为当前方块
+            this._spawnTetromino();
+        }
+        
+        // 标记本轮已使用暂存
+        this.canHold = false;
+        
+        // 触发方块生成回调
+        this.onPieceSpawned(this.currentTetromino, this.nextTetromino);
+        
+        return true;
     }
     
     /**
@@ -390,6 +462,8 @@ class GameEngine {
             this.level = 1;
             this.currentTetromino = null;
             this.nextTetromino = null;
+            this.holdTetromino = null;
+            this.canHold = true;
             this.accumulatedTime = 0;
         }
         
@@ -701,6 +775,8 @@ class GameEngine {
      * @returns {number} returns.speed - 当前速度级别
      * @returns {Tetromino|null} returns.currentTetromino - 当前方块
      * @returns {Tetromino|null} returns.nextTetromino - 下一个方块
+     * @returns {Tetromino|null} returns.holdTetromino - 暂存区的方块
+     * @returns {boolean} returns.canHold - 是否可以使用暂存功能
      * @returns {number[][]} returns.board - 棋盘网格的拷贝
      * 
      * @example
@@ -717,6 +793,8 @@ class GameEngine {
             speed: this.speed,
             currentTetromino: this.currentTetromino,
             nextTetromino: this.nextTetromino,
+            holdTetromino: this.holdTetromino,
+            canHold: this.canHold,
             board: this.board.getGridCopy()
         };
     }

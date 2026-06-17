@@ -47,6 +47,7 @@
  * @property {string} drop - 硬降按键，默认为空格键
  * @property {string} rotateCW - 顺时针旋转按键，默认为上箭头
  * @property {string} rotateCCW - 逆时针旋转按键，默认为Z键
+ * @property {string} hold - 暂存方块按键，默认为左Shift键
  */
 const DEFAULT_KEY_BINDINGS = {
     left: 'ArrowLeft',      // 左移
@@ -54,7 +55,8 @@ const DEFAULT_KEY_BINDINGS = {
     down: 'ArrowDown',      // 软降
     drop: 'Space',          // 硬降
     rotateCW: 'ArrowUp',    // 顺时针旋转
-    rotateCCW: 'KeyZ'       // 逆时针旋转
+    rotateCCW: 'KeyZ',      // 逆时针旋转
+    hold: 'ShiftLeft'       // 暂存方块
 };
 
 /**
@@ -297,6 +299,10 @@ class InputHandler {
             case 'rotateCCW':
                 // Requirement 3.2: Z键逆时针旋转
                 result = this.gameEngine.rotateCounterClockwise();
+                break;
+            case 'hold':
+                // 暂存方块
+                result = this.gameEngine.holdPiece();
                 break;
             default:
                 return false;

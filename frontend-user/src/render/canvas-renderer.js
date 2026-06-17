@@ -140,8 +140,9 @@ const DEFAULT_RENDER_OPTIONS = {
  * 3. 渲染已放置的方块和当前活动方块
  * 4. 渲染Ghost Piece（硬降预览）
  * 5. 渲染下一个方块预览
- * 6. 执行行消除动画
- * 7. 管理游戏渲染循环和帧率
+ * 6. 渲染暂存区方块
+ * 7. 执行行消除动画
+ * 8. 管理游戏渲染循环和帧率
  * 
  * Requirements: 10.1, 10.2, 10.3, 9.5, 9.6, 5.3, 3.1, 3.2
  * 
@@ -149,7 +150,8 @@ const DEFAULT_RENDER_OPTIONS = {
  * // 创建渲染器实例
  * const canvas = document.getElementById('game-canvas');
  * const nextCanvas = document.getElementById('next-piece');
- * const renderer = new CanvasRenderer(canvas, nextCanvas, {
+ * const holdCanvas = document.getElementById('hold-piece');
+ * const renderer = new CanvasRenderer(canvas, nextCanvas, holdCanvas, {
  *     cellSize: 30,
  *     ghostPieceEnabled: true,
  *     gridLinesEnabled: true
@@ -161,6 +163,7 @@ const DEFAULT_RENDER_OPTIONS = {
  *     board: gameEngine.getBoard(),
  *     currentTetromino: gameEngine.getCurrentTetromino(),
  *     nextTetromino: gameEngine.getNextTetromino(),
+ *     holdTetromino: gameEngine.getHoldTetromino(),
  *     ghostY: gameEngine.getGhostY(),
  *     gameState: 'playing'
  * };
@@ -178,7 +181,8 @@ class CanvasRenderer {
      * @constructor
      * @param {HTMLCanvasElement} canvas - 主游戏Canvas元素，用于渲染游戏棋盘
      * @param {HTMLCanvasElement|null} [nextPieceCanvas=null] - 下一个方块预览Canvas元素，可选
-     * @param {Object} [options={}] - 配置选项对象
+     * @param {HTMLCanvasElement|null|Object} [holdPieceCanvasOrOptions=null] - 暂存区方块Canvas元素或配置选项对象
+     * @param {Object} [options={}] - 配置选项对象（当第三个参数是canvas时使用）
      * @param {number} [options.cellSize=30] - 单元格大小（像素），默认30px
      * @param {boolean} [options.ghostPieceEnabled=true] - 是否显示Ghost Piece
      * @param {boolean} [options.gridLinesEnabled=true] - 是否显示网格线
@@ -192,33 +196,53 @@ class CanvasRenderer {
      * const renderer = new CanvasRenderer(canvas);
      * 
      * @example
+     * // 带下一个方块预览创建
+     * const renderer = new CanvasRenderer(canvas, nextCanvas, { cellSize: 25 });
+     * 
+     * @example
      * // 带完整配置创建
-     * const renderer = new CanvasRenderer(canvas, nextCanvas, {
+     * const renderer = new CanvasRenderer(canvas, nextCanvas, holdCanvas, {
      *     cellSize: 25,
      *     ghostPieceEnabled: true,
      *     gridLinesEnabled: false
      * });
      */
-    constructor(canvas, nextPieceCanvas = null, options = {}) {
+    constructor(canvas, nextPieceCanvas = null, holdPieceCanvasOrOptions = null, options = {}) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.nextPieceCanvas = nextPieceCanvas;
         this.nextPieceCtx = nextPieceCanvas ? nextPieceCanvas.getContext('2d') : null;
         
+        // 处理第三个参数可能是hold canvas或options的情况（向后兼容）
+        let holdPieceCanvas = null;
+        let actualOptions = options;
+        
+        if (holdPieceCanvasOrOptions && typeof holdPieceCanvasOrOptions === 'object' && holdPieceCanvasOrOptions.getContext) {
+            // 第三个参数是canvas元素
+            holdPieceCanvas = holdPieceCanvasOrOptions;
+        } else if (holdPieceCanvasOrOptions && typeof holdPieceCanvasOrOptions === 'object') {
+            // 第三个参数是options对象（向后兼容）
+            actualOptions = holdPieceCanvasOrOptions;
+            holdPieceCanvas = null;
+        }
+        
+        this.holdPieceCanvas = holdPieceCanvas;
+        this.holdPieceCtx = holdPieceCanvas ? holdPieceCanvas.getContext('2d') : null;
+        
         // 计算单元格大小
-        this.cellSize = options.cellSize || DEFAULT_CELL_SIZE;
+        this.cellSize = actualOptions.cellSize || DEFAULT_CELL_SIZE;
         
         // 渲染选项（从 options 中提取或使用默认值）
         // Requirements: 3.1 - Ghost piece toggle option
         this.renderOptions = {
-            ghostPieceEnabled: options.ghostPieceEnabled !== undefined 
-                ? options.ghostPieceEnabled 
+            ghostPieceEnabled: actualOptions.ghostPieceEnabled !== undefined 
+                ? actualOptions.ghostPieceEnabled 
                 : DEFAULT_RENDER_OPTIONS.ghostPieceEnabled,
-            gridLinesEnabled: options.gridLinesEnabled !== undefined 
-                ? options.gridLinesEnabled 
+            gridLinesEnabled: actualOptions.gridLinesEnabled !== undefined 
+                ? actualOptions.gridLinesEnabled 
                 : DEFAULT_RENDER_OPTIONS.gridLinesEnabled,
-            gridLineColor: options.gridLineColor || DEFAULT_RENDER_OPTIONS.gridLineColor,
-            gridLineWidth: options.gridLineWidth || DEFAULT_RENDER_OPTIONS.gridLineWidth
+            gridLineColor: actualOptions.gridLineColor || DEFAULT_RENDER_OPTIONS.gridLineColor,
+            gridLineWidth: actualOptions.gridLineWidth || DEFAULT_RENDER_OPTIONS.gridLineWidth
         };
         
         // 动画状态
@@ -266,6 +290,13 @@ class CanvasRenderer {
             this.nextPieceCanvas.width = 4 * this.cellSize;
             this.nextPieceCanvas.height = 4 * this.cellSize;
             this.nextPieceCtx.imageSmoothingEnabled = false;
+        }
+        
+        // 初始化暂存区Canvas
+        if (this.holdPieceCanvas && this.holdPieceCtx) {
+            this.holdPieceCanvas.width = 4 * this.cellSize;
+            this.holdPieceCanvas.height = 4 * this.cellSize;
+            this.holdPieceCtx.imageSmoothingEnabled = false;
         }
     }
     
@@ -326,6 +357,13 @@ class CanvasRenderer {
         // 渲染下一个方块预览
         if (gameState.nextTetromino) {
             this.renderNextPiece(gameState.nextTetromino);
+        }
+        
+        // 渲染暂存区方块
+        if (gameState.holdTetromino) {
+            this.renderHoldPiece(gameState.holdTetromino, gameState.canHold);
+        } else {
+            this.renderEmptyHoldPiece();
         }
         
         // 渲染游戏结束画面
@@ -597,6 +635,89 @@ class CanvasRenderer {
                 }
             }
         }
+        
+        // 渲染边框
+        ctx.strokeStyle = GRID_LINE_COLOR;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    /**
+     * 渲染暂存区方块
+     * 
+     * 在暂存区Canvas上显示当前暂存的方块。
+     * 
+     * @param {Tetromino} tetromino - 暂存的方块对象
+     * @param {boolean} canHold - 是否可以使用暂存功能
+     * 
+     * @description
+     * 方块会在暂存区Canvas中居中显示。
+     * 如果不能使用暂存功能，方块会显示为半透明。
+     * 如果没有配置holdPieceCanvas，此方法不执行任何操作。
+     * 
+     * @example
+     * const holdTetromino = gameEngine.getHoldTetromino();
+     * if (holdTetromino) {
+     *     renderer.renderHoldPiece(holdTetromino, gameEngine.canHold());
+     * }
+     */
+    renderHoldPiece(tetromino, canHold = true) {
+        if (!this.holdPieceCtx) return;
+        
+        const ctx = this.holdPieceCtx;
+        const canvas = this.holdPieceCanvas;
+        
+        // 清空暂存区画布
+        ctx.fillStyle = GRID_BACKGROUND_COLOR;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        const shape = tetromino.shape;
+        const color = tetromino.color;
+        const alpha = canHold ? 1 : 0.4;
+        
+        // 计算居中偏移
+        const shapeWidth = shape[0].length;
+        const shapeHeight = shape.length;
+        const offsetX = Math.floor((4 - shapeWidth) / 2);
+        const offsetY = Math.floor((4 - shapeHeight) / 2);
+        
+        // 渲染方块
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        for (let row = 0; row < shape.length; row++) {
+            for (let col = 0; col < shape[row].length; col++) {
+                if (shape[row][col] !== 0) {
+                    const x = offsetX + col;
+                    const y = offsetY + row;
+                    this._renderNextPieceCell(ctx, x, y, color);
+                }
+            }
+        }
+        ctx.restore();
+        
+        // 渲染边框
+        ctx.strokeStyle = canHold ? GRID_LINE_COLOR : '#666666';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    /**
+     * 渲染空暂存区
+     * 
+     * 当暂存区为空时，渲染空的暂存区背景。
+     * 
+     * @description
+     * 如果没有配置holdPieceCanvas，此方法不执行任何操作。
+     */
+    renderEmptyHoldPiece() {
+        if (!this.holdPieceCtx) return;
+        
+        const ctx = this.holdPieceCtx;
+        const canvas = this.holdPieceCanvas;
+        
+        // 清空暂存区画布
+        ctx.fillStyle = GRID_BACKGROUND_COLOR;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         // 渲染边框
         ctx.strokeStyle = GRID_LINE_COLOR;
