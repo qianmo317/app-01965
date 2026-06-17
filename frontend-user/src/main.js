@@ -41,6 +41,7 @@ class TetrisApp {
         // 获取Canvas元素
         const gameCanvas = document.getElementById('game-canvas');
         const nextPieceCanvas = document.getElementById('next-piece-canvas');
+        const holdPieceCanvas = document.getElementById('hold-piece-canvas');
         
         if (!gameCanvas) {
             console.error('Game canvas not found!');
@@ -57,7 +58,7 @@ class TetrisApp {
         });
         
         // 初始化渲染器
-        this.renderer = new CanvasRenderer(gameCanvas, nextPieceCanvas);
+        this.renderer = new CanvasRenderer(gameCanvas, nextPieceCanvas, holdPieceCanvas);
         
         // 初始化输入处理器
         this.inputHandler = new InputHandler(this.gameEngine);

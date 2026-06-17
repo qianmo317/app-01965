@@ -245,6 +245,10 @@ class GameEngine {
         this.currentTetromino = null;
         this.nextTetromino = null;
         
+        // 暂存方块
+        this.holdTetromino = null;
+        this.canHold = true;
+        
         // 时间控制
         this.dropInterval = SPEED_INTERVALS[this.speed];
         this.lastDropTime = 0;
@@ -299,6 +303,9 @@ class GameEngine {
         // 生成下一个预览方块
         this.nextTetromino = this.factory.createRandom();
         
+        // 新方块生成后，重置暂存可用状态
+        this.canHold = true;
+        
         // 检查游戏是否结束 (Requirement 5.1)
         if (this.board.isGameOver(this.currentTetromino)) {
             this._triggerGameOver();
@@ -306,6 +313,87 @@ class GameEngine {
         }
         
         this.onPieceSpawned(this.currentTetromino, this.nextTetromino);
+        return true;
+    }
+    
+    /**
+     * 暂存当前方块（Hold）
+     * 
+     * 将当前方块存入暂存区，或将暂存区中的方块与当前方块交换。
+     * 每一轮下落只能使用一次暂存功能。
+     * 
+     * @returns {boolean} 如果成功暂存/交换返回true，否则返回false
+     * 
+     * @description
+     * 暂存规则：
+     * 1. 每一轮下落只能使用一次暂存
+     * 2. 如果暂存区为空，将当前方块存入，然后生成新方块
+     * 3. 如果暂存区有方块，将当前方块与暂存方块交换
+     * 4. 交换后，新的当前方块会重置到生成位置
+     */
+    holdPiece() {
+        if (this.gameState !== GAME_STATES.PLAYING || !this.currentTetromino) {
+            return false;
+        }
+        
+        // 检查本轮是否已经使用过暂存
+        if (!this.canHold) {
+            return false;
+        }
+        
+        const spawnPos = this._getSpawnPosition();
+        const currentPiece = this.currentTetromino;
+        let newCurrentTetromino;
+        
+        if (this.holdTetromino) {
+            // 暂存区有方块，交换
+            newCurrentTetromino = this.holdTetromino;
+            newCurrentTetromino.x = spawnPos.x;
+            newCurrentTetromino.y = spawnPos.y;
+            newCurrentTetromino.rotationIndex = 0;
+            
+            this.holdTetromino = new currentPiece.constructor(currentPiece.type);
+            this.holdTetromino.x = 0;
+            this.holdTetromino.y = 0;
+            this.holdTetromino.rotationIndex = 0;
+        } else {
+            // 暂存区为空，存入当前方块并生成新方块
+            this.holdTetromino = new currentPiece.constructor(currentPiece.type);
+            this.holdTetromino.x = 0;
+            this.holdTetromino.y = 0;
+            this.holdTetromino.rotationIndex = 0;
+            
+            // 使用预览方块作为当前方块
+            if (this.nextTetromino) {
+                newCurrentTetromino = this.nextTetromino;
+                newCurrentTetromino.x = spawnPos.x;
+                newCurrentTetromino.y = spawnPos.y;
+            } else {
+                newCurrentTetromino = this.factory.createRandom(spawnPos.x, spawnPos.y);
+            }
+            
+            // 生成新的预览方块
+            this.nextTetromino = this.factory.createRandom();
+        }
+        
+        // 检查新方块是否可以放置（游戏结束检测）
+        if (this.board.isGameOver(newCurrentTetromino)) {
+            // 无法放置，触发游戏结束
+            this.currentTetromino = newCurrentTetromino;
+            this.canHold = false;
+            this._triggerGameOver();
+            return false;
+        }
+        
+        // 确认交换
+        this.currentTetromino = newCurrentTetromino;
+        
+        // 标记本轮已使用暂存
+        this.canHold = false;
+        
+        // 触发方块生成回调
+        this.onPieceSpawned(this.currentTetromino, this.nextTetromino);
+        
         return true;
     }
     
@@ -390,6 +478,8 @@ class GameEngine {
             this.level = 1;
             this.currentTetromino = null;
             this.nextTetromino = null;
+            this.holdTetromino = null;
+            this.canHold = true;
             this.accumulatedTime = 0;
         }
         
@@ -717,6 +807,8 @@ class GameEngine {
             speed: this.speed,
             currentTetromino: this.currentTetromino,
             nextTetromino: this.nextTetromino,
+            holdTetromino: this.holdTetromino,
+            canHold: this.canHold,
             board: this.board.getGridCopy()
         };
     }

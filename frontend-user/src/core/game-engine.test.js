@@ -603,4 +603,194 @@ describe('GameEngine', () => {
             expect(engine.nextTetromino).not.toBe(oldNext);
         });
     });
+    
+    describe('Hold Piece (暂存方块)', () => {
+        test('should initialize with null holdTetromino', () => {
+            expect(engine.holdTetromino).toBeNull();
+        });
+        
+        test('should initialize with canHold = true', () => {
+            expect(engine.canHold).toBe(true);
+        });
+        
+        test('getState() should include holdTetromino and canHold', () => {
+            engine.start();
+            const state = engine.getState();
+            expect(state).toHaveProperty('holdTetromino');
+            expect(state).toHaveProperty('canHold');
+        });
+        
+        test('first hold should store current piece and use next piece', () => {
+            engine.start();
+            const currentType = engine.currentTetromino.type;
+            const nextType = engine.nextTetromino.type;
+            
+            const result = engine.holdPiece();
+            
+            expect(result).toBe(true);
+            expect(engine.holdTetromino).not.toBeNull();
+            expect(engine.holdTetromino.type).toBe(currentType);
+            expect(engine.currentTetromino.type).toBe(nextType);
+            expect(engine.canHold).toBe(false);
+        });
+        
+        test('first hold should generate a new next piece', () => {
+            engine.start();
+            const oldNext = engine.nextTetromino;
+            
+            engine.holdPiece();
+            
+            expect(engine.nextTetromino).not.toBe(oldNext);
+        });
+        
+        test('second hold with piece in hold should swap pieces', () => {
+            engine.start();
+            const firstCurrentType = engine.currentTetromino.type;
+            
+            // 第一次暂存 - 当前方块进入暂存区
+            engine.holdPiece();
+            expect(engine.holdTetromino.type).toBe(firstCurrentType);
+            
+            const heldType = engine.holdTetromino.type;
+            const currentBeforeSecondHold = engine.currentTetromino.type;
+            
+            // 锁定当前方块，重置 canHold
+            engine.hardDrop();
+            expect(engine.canHold).toBe(true);
+            
+            // 第二次暂存（交换）- 当前方块进入暂存区，原暂存方块出来
+            const newCurrentType = engine.currentTetromino.type;
+            engine.holdPiece();
+            
+            // 暂存区现在应该是新换进去的方块
+            expect(engine.holdTetromino.type).toBe(newCurrentType);
+            // 当前方块应该是原来暂存的方块（firstCurrentType）
+            expect(engine.currentTetromino.type).toBe(firstCurrentType);
+            expect(engine.currentTetromino.type).toBe(heldType);
+        });
+        
+        test('can only hold once per piece spawn cycle', () => {
+            engine.start();
+            
+            // 第一次暂存成功
+            const firstResult = engine.holdPiece();
+            expect(firstResult).toBe(true);
+            expect(engine.canHold).toBe(false);
+            
+            // 第二次暂存应该失败
+            const secondResult = engine.holdPiece();
+            expect(secondResult).toBe(false);
+        });
+        
+        test('canHold should reset after piece locks and new piece spawns', () => {
+            engine.start();
+            
+            // 使用暂存
+            engine.holdPiece();
+            expect(engine.canHold).toBe(false);
+            
+            // 锁定方块
+            engine.hardDrop();
+            
+            // 新方块生成后，canHold 应该重置为 true
+            expect(engine.canHold).toBe(true);
+        });
+        
+        test('holdPiece should return false when game is not playing', () => {
+            expect(engine.holdPiece()).toBe(false);
+        });
+        
+        test('holdPiece should return false when paused', () => {
+            engine.start();
+            engine.pause();
+            expect(engine.holdPiece()).toBe(false);
+        });
+        
+        test('holdPiece should trigger game over when spawn is blocked', () => {
+            engine.start();
+            
+            // 先暂存一次
+            engine.holdPiece();
+            expect(engine.gameState).toBe(GAME_STATES.PLAYING);
+            
+            // 锁定方块
+            engine.hardDrop();
+            
+            // 填满顶部行，阻止新方块生成
+            for (let x = 0; x < 10; x++) {
+                engine.board.setCell(x, 0, 1);
+                engine.board.setCell(x, 1, 1);
+            }
+            
+            // 此时 canHold 应该是 true，执行暂存应该触发游戏结束
+            const result = engine.holdPiece();
+            
+            expect(result).toBe(false);
+            expect(engine.gameState).toBe(GAME_STATES.GAMEOVER);
+        });
+        
+        test('holdPiece with swap should trigger game over when spawn is blocked', () => {
+            engine.start();
+            
+            // 第一次暂存，把方块存入暂存区
+            engine.holdPiece();
+            
+            // 锁定当前方块
+            engine.hardDrop();
+            expect(engine.canHold).toBe(true);
+            
+            // 填满顶部行
+            for (let x = 0; x < 10; x++) {
+                engine.board.setCell(x, 0, 1);
+                engine.board.setCell(x, 1, 1);
+            }
+            
+            // 执行暂存（交换），应该触发游戏结束
+            const result = engine.holdPiece();
+            
+            expect(result).toBe(false);
+            expect(engine.gameState).toBe(GAME_STATES.GAMEOVER);
+        });
+        
+        test('held piece should reset rotation to default', () => {
+            engine.start();
+            
+            // 旋转当前方块
+            engine.rotateClockwise();
+            const rotatedIndex = engine.currentTetromino.rotationIndex;
+            expect(rotatedIndex).not.toBe(0);
+            
+            // 暂存
+            engine.holdPiece();
+            
+            // 暂存区的方块应该重置旋转
+            expect(engine.holdTetromino.rotationIndex).toBe(0);
+        });
+        
+        test('swapped-in piece should reset rotation to default', () => {
+            engine.start();
+            
+            // 第一次暂存 - 当前方块进入暂存区（旋转0）
+            engine.holdPiece();
+            const heldType = engine.holdTetromino.type;
+            
+            // 锁定当前方块，重置 canHold
+            engine.hardDrop();
+            
+            // 先把当前方块旋转几下（确保它不是0）
+            engine.rotateClockwise();
+            engine.rotateClockwise();
+            const currentRotationBeforeHold = engine.currentTetromino.rotationIndex;
+            
+            // 暂存（交换）
+            engine.holdPiece();
+            
+            // 换出来的方块应该是原始暂存的方块，旋转为0
+            expect(engine.currentTetromino.type).toBe(heldType);
+            expect(engine.currentTetromino.rotationIndex).toBe(0);
+            
+            // 暂存区的方块应该是刚换进去的，旋转也重置为0
+            expect(engine.holdTetromino.rotationIndex).toBe(0);
+        });
+    });
 });
